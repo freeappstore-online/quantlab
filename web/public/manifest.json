@@ -1,14 +1,29 @@
 {
-  "name": "quantlab",
-  "short_name": "quantlab",
-  "description": "Free quantlab app — part of FreeAppStore",
+  "name": "QuantLab",
+  "short_name": "QuantLab",
+  "description": "Free quant interview and exam prep: timed mental maths, sequences, percentages and estimation. Offline, no tracking, no sign-up.",
   "start_url": "/",
   "display": "standalone",
   "orientation": "any",
   "background_color": "#ffffff",
-  "theme_color": "#111111",
+  "theme_color": "#d86f4d",
   "icons": [
-    { "src": "/icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any maskable" },
-    { "src": "/icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any maskable" }
-  ]
+    {
+      "src": "/icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "/icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
+  ],
+  "categories": [
+    "education",
+    "productivity"
+  ],
+  "min_viewport_width": 320
 }

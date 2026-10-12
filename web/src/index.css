@@ -193,3 +193,90 @@ a:focus-visible {
 /* Shell's text-size preference scales rem-based app typography. */
 :root[data-text='lg'] { font-size: 112.5%; }
 :root[data-text='sm'] { font-size: 87.5%; }
+
+/* ---- QuantLab: semantic tokens mapped onto the platform palette (dark mode follows data-theme) ---- */
+:root {
+  --on-accent: #1a0c06;
+  --danger-soft: color-mix(in srgb, var(--danger) 12%, transparent);
+}
+
+@theme inline {
+  --color-bg: var(--paper-deep);
+  --color-surface: var(--panel-strong);
+  --color-ink: var(--ink);
+  --color-muted: var(--muted);
+  --color-border: var(--line-strong);
+  --color-accent: var(--accent);
+  --color-accent-soft: var(--accent-soft);
+  --color-accent-ink: var(--accent-deep);
+  --color-on-accent: var(--on-accent);
+  --color-danger: var(--danger);
+  --color-danger-soft: var(--danger-soft);
+  --font-mono: ui-monospace, 'SF Mono', 'Cascadia Mono', Menlo, Consolas, monospace;
+}
+
+/* Small phones in portrait trim vertical spacing; landscape phones put the keypad beside the question. */
+@custom-variant compact (@media (max-height: 600px));
+@custom-variant short (@media (max-height: 520px) and (orientation: landscape));
+
+.no-select {
+  -webkit-user-select: none;
+  user-select: none;
+  -webkit-touch-callout: none;
+}
+
+.tabular {
+  font-variant-numeric: tabular-nums;
+}
+
+@layer components {
+  .card {
+    @apply rounded-2xl border border-border bg-surface;
+  }
+  .btn {
+    @apply inline-flex min-h-11 items-center justify-center rounded-xl border border-border bg-surface px-4 text-sm font-semibold text-ink no-underline transition-colors hover:bg-accent-soft;
+    touch-action: manipulation;
+  }
+  .btn-primary {
+    @apply border-transparent bg-accent text-on-accent hover:bg-accent hover:brightness-95;
+  }
+  .btn-danger {
+    @apply border-danger text-danger hover:bg-danger-soft;
+  }
+  .seg {
+    @apply inline-flex rounded-xl border border-border bg-surface p-0.5;
+  }
+  .seg > button {
+    @apply min-h-10 rounded-[10px] px-3 text-sm font-semibold text-muted transition-colors;
+    touch-action: manipulation;
+  }
+  .seg > button[aria-pressed='true'],
+  .seg > button[aria-selected='true'] {
+    @apply bg-accent text-on-accent;
+  }
+  .stat-label {
+    @apply text-xs font-semibold uppercase tracking-wide text-muted;
+  }
+}
+
+/* Bigger touch targets on phones and tablets. */
+@media (pointer: coarse) {
+  .seg > button {
+    min-height: 2.75rem;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  * {
+    transition: none !important;
+    animation: none !important;
+  }
+}
+
+/* On the narrowest phones (320px) the Shell topbar is 13px too wide with the app name beside the Free logo.
+   Hide just that label there; the page heading and tab title still carry the name. */
+@media (max-width: 340px) {
+  header > div:first-child > span {
+    display: none;
+  }
+}

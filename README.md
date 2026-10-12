@@ -1,41 +1,74 @@
-# template-standalone
+# QuantLab
 
-The standalone-app template used by [`fas init`](https://github.com/freeappstore-online/platform/tree/main/packages/cli) to scaffold new free apps for [FreeAppStore](https://freeappstore.online).
+Free quant interview and exam prep in the browser. Short timed drills for the mental arithmetic, sequences, percentages and estimation that quant interviews and trading-firm online tests use. Scores, history and trend lines, all kept on your device.
 
-You almost certainly want to use the CLI, not clone this directly:
+- **Free.** No ads, no paywall, no account.
+- **Private.** No cookies and no accounts. Scores never leave your device.
+- **Offline.** Installable PWA that works without a connection after the first visit.
+- **Open source.** MIT licensed.
+
+A standalone [FreeAppStore](https://freeappstore.online) app, live at `quantlab.freeappstore.online` once published.
+
+## Modes
+
+| Mode | Format | Score |
+| --- | --- | --- |
+| Arithmetic Sprint | 120 s, open-ended, +, −, ×, ÷ | Correct answers |
+| 80 in 8 | 80 mixed questions in 8 min, decimals and negatives on higher levels | Correct out of 80 |
+| Number Sequences | 15 sequences in 5 min, exact next term, rule shown for every miss | Correct out of 15 |
+| Percentages & Estimation | 20 questions in 5 min: percent change, reverse percentages, fractions, roots, compound growth, approximations | Correct out of 20 |
+
+Each mode has Easy, Medium and Hard. Correct answers on exact-answer questions advance automatically (toggle in Settings). A wrong answer or skip scores 0 and costs nothing. Estimates are correct inside the tolerance shown under the question. The clock pauses while the tab is hidden.
+
+History shows a score trend with a 5-session average and a worst-first table of the question types costing you points.
+
+## Data stored in the browser
+
+Two localStorage keys, written through `web/src/services/storage.ts`:
+
+| Key | Contents |
+| --- | --- |
+| `quantlab:v1:sessions` | Last 300 runs: mode, difficulty, time, score, attempted, correct, average time per correct answer, best streak, per-category totals |
+| `quantlab:v1:settings` | Auto-advance, keypad preference, last difficulty per mode |
+
+Settings has Export as JSON and Delete history.
+
+## Develop
+
+Requires Node 22+ and pnpm 10.30+.
 
 ```bash
-npm i -g @freeappstore/cli
-fas init my-app
+pnpm install
+pnpm dev          # http://localhost:5173
+pnpm typecheck
+pnpm test         # question generator and scoring invariants
+pnpm build        # type check, then production build with the PWA service worker
+pnpm preview      # serve dist/ to test offline mode
+fas check         # platform compliance
 ```
 
-The CLI clones this template, replaces every `quantlab` placeholder with your app id, runs `git init`, and makes the first commit — the result is a runnable app you can `pnpm dev` immediately.
+## Structure
 
-## What's in here
-
-- `web/` — Vite + React + TypeScript + Tailwind 4 app, ESM-only.
-- `web/src/App.tsx` — the app wrapped in the SDK's `Shell` (`@freeappstore/sdk/ui`) with two starter screens, Home (`/`) and About (`/about`), declared in its `nav` prop. A new app renders the standard topbar, its navigation (`<nav aria-label="Main">`), an error boundary, toasts and an offline banner from the first render. No sign-in required.
-- `web/src/index.css` — brand fonts (Manrope + Fraunces) and the design tokens (`--paper`, `--ink`, `--accent`, …); dark mode via `:root[data-theme='dark']`, which the SDK sets from the system or the Shell's theme toggle.
-- `web/src/main.tsx` — React entry point.
-- `web/index.html` — links Manrope + Fraunces, sets PWA meta tags, references the manifest.
-- `web/public/manifest.json` — PWA manifest with `name`, `display`, `start_url`.
-- `package.json` — pnpm workspace, `dev` / `build` / `typecheck` / `test` scripts.
-- `.github/workflows/compliance.yml` — runs the same checks as `fas check` on every PR. Source of truth lives in the [`@freeappstore/compliance`](https://www.npmjs.com/package/@freeappstore/compliance) package.
-
-## Cloning manually (not recommended)
-
-If you really want to scaffold by hand:
-
-```bash
-git clone https://github.com/freeappstore-online/template-standalone my-app
-cd my-app
-# Replace quantlab → my-app in package.json, web/index.html, web/src/App.tsx, README, etc.
-rm -rf .git && git init
-pnpm install && pnpm dev
+```
+web/src/
+  App.tsx              SDK Shell, nav and screen routing
+  index.css            platform tokens and fonts, plus QuantLab tokens and components
+  types.ts             shared interfaces
+  hooks/               useDrill (timer, input, scoring), useStore, useRoute (pathname routing)
+  services/
+    generators/        question generators for each mode
+    modes.ts           mode configs and labels
+    scoring.ts         correctness, session summary
+    storage.ts         typed, validated localStorage adapter
+  components/          Home, Drill, Keypad, Results, History, TrendChart, SettingsView, About, Link
 ```
 
-Then run `fas publish` to provision repo + hosting + DNS, or open the [submission form](https://github.com/freeappstore-online/submissions/issues/new) for maintainer review.
+## Ideas for later
+
+- Optional leaderboard (needs the connected-app template; the app stays fully usable without it)
+- Squares and cubes tables, fraction-decimal drills, expected-value and probability quick-fire
+- A practice mode driven by the weak-spots table
 
 ## License
 
-MIT.
+MIT
