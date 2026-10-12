@@ -1,0 +1,15 @@
+{
+  "name": "quantlab",
+  "private": true,
+  "packageManager": "pnpm@10.30.3",
+  "engines": { "node": ">=22" },
+  "pnpm": { "onlyBuiltDependencies": ["esbuild"] },
+  "repository": { "type": "git", "url": "git+https://github.com/freeappstore-online/quantlab.git" },
+  "scripts": {
+    "dev": "pnpm --filter @quantlab/web dev",
+    "build": "pnpm --filter @quantlab/web build",
+    "preview": "pnpm --filter @quantlab/web preview",
+    "typecheck": "pnpm --filter @quantlab/web exec tsc -b",
+    "test": "pnpm --filter @quantlab/web exec tsc -b"
+  }
+}
