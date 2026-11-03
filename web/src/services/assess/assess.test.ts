@@ -1,13 +1,13 @@
 import { describe, expect, it } from 'vitest';
 import { mulberry32 } from '../rng';
-import { generateBlockPuzzle, regionCells, rotate90, rotated, rotations, solveBlockFit, type Cell } from './blockfit';
-import { bubbleCount, fNum, generateBubbleRound } from './bubbles';
+import { blockVariantFor, generateBlockPuzzle, regionCells, rotate90, rotated, rotations, solveBlockFit, type Cell } from './blockfit';
+import { bubbleCount, bubbleKindFor, evaluate, fNum, generateBubbleRound, generateStreamSpec, makeStreamBubble, matches, streamPace } from './bubbles';
 import { applyTransform, blankGrid, describeTransform, generateMirror, gridsEqual, mirrorLr, rotateCw } from './mirror';
 import { DELTA, DIR_LIST, generateMaze, solveMaze, tryMove, type Maze } from './route';
-import { SJT_SCENARIOS, SJT_TAG_LABEL, SJT_THEME_LABEL } from './sjtBank';
-import { generateSjtItems, scoreRanking } from './sjt';
+import { SJT_TAG_LABEL, SJT_THEME_LABEL } from './sjtBank';
+import { generateSjtItems, SJT_ALL, scoreRanking } from './sjt';
 import { compare, generateSumItem } from './sumcompare';
-import { allActivePassage, cleanText, generatePassage, slotCount, TYPO_KIND_LABEL, type TypoKind } from './typo';
+import { allActivePassage, cleanText, generatePassage, slotCount, TYPO_KIND_LABEL, TYPO_SCHEDULE, TYPO_VARIANTS, type TypoKind } from './typo';
 import { TYPO_TEMPLATES } from './typoBank';
 import { absoluteExtremes, chooseStatements, findConflicts, hasAbsoluteWording, pairCount, STATEMENTS } from './workstyle';
 import { parseAssessSettings, parseRecord } from './storage';
@@ -294,12 +294,13 @@ describe('Shortest Route', () => {
 
 describe('Workplace Judgement', () => {
   it('has a large, well formed scenario bank', () => {
-    expect(SJT_SCENARIOS.length).toBeGreaterThanOrEqual(30);
-    expect(new Set(SJT_SCENARIOS.map((s) => s.id)).size).toBe(SJT_SCENARIOS.length);
+    expect(SJT_ALL.length).toBeGreaterThanOrEqual(60);
+    expect(new Set(SJT_ALL.map((s) => s.id)).size).toBe(SJT_ALL.length);
     for (const theme of Object.keys(SJT_THEME_LABEL)) {
-      expect(SJT_SCENARIOS.filter((s) => s.theme === theme).length).toBeGreaterThanOrEqual(5);
+      expect(SJT_ALL.filter((s) => s.theme === theme).length).toBeGreaterThanOrEqual(5);
     }
-    for (const s of SJT_SCENARIOS) {
+    expect(Object.keys(SJT_THEME_LABEL)).toHaveLength(11);
+    for (const s of SJT_ALL) {
       expect(s.options).toHaveLength(4);
       expect(s.situation.length).toBeGreaterThan(40);
       expect(new Set(s.options.map((o) => o.text)).size).toBe(4);
@@ -334,9 +335,9 @@ describe('Workplace Judgement', () => {
 });
 
 describe('Work-style questionnaire', () => {
-  it('builds opposite pairs across five traits', () => {
-    expect(STATEMENTS.length).toBeGreaterThanOrEqual(30);
-    expect(new Set(STATEMENTS.map((s) => s.trait)).size).toBe(5);
+  it('builds opposite pairs across nine traits', () => {
+    expect(STATEMENTS.length).toBeGreaterThanOrEqual(54);
+    expect(new Set(STATEMENTS.map((s) => s.trait)).size).toBe(9);
     for (const s of STATEMENTS) expect(STATEMENTS.find((t) => t.id === s.pair)?.pair).toBe(s.id);
   });
 
@@ -344,6 +345,7 @@ describe('Work-style questionnaire', () => {
     const picked = chooseStatements(mulberry32(9), 7);
     expect(picked).toHaveLength(14);
     expect(pairCount(picked)).toBe(7);
+    expect(chooseStatements(mulberry32(3), 10)).toHaveLength(20);
     picked.forEach((s, i) => {
       const next = picked[i + 1];
       if (next) expect(next.id).not.toBe(s.pair);
@@ -377,5 +379,92 @@ describe('storage', () => {
     expect(parseAssessSettings('x')).toEqual({ timerOn: true, override: 'auto', sound: false });
     expect(parseAssessSettings({ timerOn: false, override: 'hard', sound: true })).toEqual({ timerOn: false, override: 'hard', sound: true });
     expect(parseAssessSettings({ override: 'impossible' }).override).toBe('auto');
+  });
+});
+
+describe('Block Fit variations', () => {
+  it('builds solvable silhouettes and spare-piece puzzles', () => {
+    for (let seed = 1; seed <= 40; seed++) {
+      for (const t of [0, 0.5, 1]) {
+        const sil = generateBlockPuzzle(mulberry32(seed * 11 + Math.round(t * 10)), t, 'silhouette');
+        expect(solveBlockFit(sil.region, sil.pieces)).toBe(true);
+        expect(regionCells(sil.region).length).toBe(sil.pieces.reduce((n, p) => n + p.cells.length, 0));
+        const spare = generateBlockPuzzle(mulberry32(seed * 13 + Math.round(t * 10)), t, 'spare');
+        expect(spare.pieces.length).toBeLessThanOrEqual(8);
+        expect(solveBlockFit(spare.region, spare.pieces, true)).toBe(true);
+        expect(solveBlockFit(spare.region, spare.pieces)).toBe(false);
+      }
+    }
+  });
+
+  it('runs 14 rounds with a mix of round types', () => {
+    const kinds = new Set(Array.from({ length: 14 }, (_, i) => blockVariantFor(i, false)));
+    expect([...kinds].sort()).toEqual(['classic', 'silhouette', 'spare']);
+  });
+});
+
+describe('Typo Hunt variations', () => {
+  it('only injects the focused kinds', () => {
+    for (const variant of ['spelling', 'wording'] as const) {
+      const info = TYPO_VARIANTS[variant];
+      for (let i = 0; i < TYPO_TEMPLATES.length; i++) {
+        const p = generatePassage(mulberry32(i + 1), { minErrors: info.min, maxErrors: info.max, kinds: info.kinds, templateIndex: i });
+        expect(p.errors.length).toBeGreaterThanOrEqual(8);
+        for (const e of p.errors) expect(info.kinds).toContain(e.kind);
+      }
+    }
+    expect(TYPO_SCHEDULE.length).toBeGreaterThanOrEqual(8);
+    expect(TYPO_VARIANTS.careful.maxWrong).toBe(2);
+  });
+});
+
+describe('Bubble Order streams', () => {
+  it('makes equations of all four operations that really equal their value', () => {
+    const ops = new Set<string>();
+    for (let seed = 1; seed <= 200; seed++) {
+      const rng = mulberry32(seed);
+      const spec = generateStreamSpec(rng, 'equals', (seed % 10) / 10, false);
+      for (let i = 0; i < 20; i++) {
+        const b = makeStreamBubble(rng, spec, (seed % 10) / 10, i % 2 === 0);
+        expect(evaluate(b.text)).toBe(b.value);
+        expect(matches(spec, b.value)).toBe(b.match);
+        expect(b.match).toBe(i % 2 === 0);
+        ops.add(/[+−×÷]/.exec(b.text)![0]);
+      }
+    }
+    expect([...ops].sort()).toEqual(['+', '×', '÷', '−'].sort());
+  });
+
+  it('respects below and above rules and keeps values positive', () => {
+    for (const kind of ['below', 'above'] as const) {
+      for (let seed = 1; seed <= 100; seed++) {
+        const rng = mulberry32(seed);
+        const spec = generateStreamSpec(rng, kind, 0.7, false);
+        for (let i = 0; i < 20; i++) {
+          const b = makeStreamBubble(rng, spec, 0.7, i % 2 === 0);
+          expect(b.value).toBeGreaterThanOrEqual(1);
+          expect(matches(spec, b.value)).toBe(i % 2 === 0);
+        }
+      }
+    }
+  });
+
+  it('speeds up and sends bigger waves as time passes, and harder rounds start harder', () => {
+    const early = streamPace(0.2, 0);
+    const late = streamPace(0.2, 60000);
+    expect(late.intervalMs).toBeLessThan(early.intervalMs);
+    expect(late.wave).toBeGreaterThan(early.wave);
+    expect(late.speed).toBeGreaterThan(early.speed);
+    expect(late.cap).toBeGreaterThan(early.cap);
+    expect(late.lifeMs).toBeLessThan(early.lifeMs);
+    expect(streamPace(0.9, 0).intervalMs).toBeLessThan(streamPace(0.1, 0).intervalMs);
+  });
+
+  it('uses different targets in different rounds and mixes round types', () => {
+    const targets = new Set<number>();
+    for (let r = 0; r < 12; r++) targets.add(generateStreamSpec(mulberry32(100 + r), 'equals', r / 11, false).target);
+    expect(targets.size).toBeGreaterThan(6);
+    const kinds = new Set(Array.from({ length: 12 }, (_, r) => bubbleKindFor(r, false)));
+    expect(kinds.size).toBe(5);
   });
 });

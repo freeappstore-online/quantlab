@@ -1,11 +1,11 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
-import { generateBlockPuzzle, regionCells, rotated, type BlockPuzzle } from '../../../services/assess/blockfit';
+import { BLOCK_VARIANT_LABEL, blockVariantFor, generateBlockPuzzle, regionCells, rotated, type BlockPuzzle } from '../../../services/assess/blockfit';
 import type { GameResult } from '../../../services/assess/types';
 import { clamp, mean, seededRng } from '../../../services/assess/util';
 import type { FrameApi } from '../api';
 import { PIECE_COLOURS, textOn } from '../palette';
 
-const ROUNDS = 9;
+const ROUNDS = 14;
 const TUTORIAL_ROUNDS = 2;
 
 interface Drag {
@@ -222,7 +222,7 @@ function Round({ puzzle, locked, onTouched, onComplete }: RoundProps) {
         <div
           ref={gridRef}
           role="grid"
-          aria-label={`Target grid, ${puzzle.rows} by ${puzzle.cols}. ${placedCount} of ${puzzle.pieces.length} pieces placed.`}
+          aria-label={`Target grid, ${puzzle.rows} by ${puzzle.cols}. ${placedCount} of ${puzzle.variant === 'spare' ? puzzle.pieces.length - 1 : puzzle.pieces.length} pieces placed.`}
           className="grid touch-none select-none rounded-lg border border-border p-0 bg-bg"
           style={{ gridTemplateColumns: `repeat(${puzzle.cols}, ${cell}px)`, gridAutoRows: `${cell}px` }}
         >
@@ -255,7 +255,8 @@ function Round({ puzzle, locked, onTouched, onComplete }: RoundProps) {
           )}
         </div>
         <p className="text-xs text-muted" aria-live="polite">
-          {placedCount} of {puzzle.pieces.length} pieces placed
+          {placedCount} of {puzzle.variant === 'spare' ? puzzle.pieces.length - 1 : puzzle.pieces.length} pieces placed
+          {puzzle.variant === 'spare' ? ' (plus one spare)' : ''}
         </p>
       </div>
 
@@ -355,7 +356,8 @@ export function BlockFit({ api }: { api: FrameApi }) {
   }, []);
 
   const level = api.level(round, total);
-  const puzzle = useMemo(() => generateBlockPuzzle(seededRng(api.seed, round), level), [api.seed, round, level]);
+  const variant = blockVariantFor(round, api.phase === 'tutorial');
+  const puzzle = useMemo(() => generateBlockPuzzle(seededRng(api.seed, round), level, variant), [api.seed, round, level, variant]);
   const score = done.length + done.reduce((s, d) => s + d.bonus, 0);
   const { setHud, finish, sound } = api;
 
@@ -411,7 +413,10 @@ export function BlockFit({ api }: { api: FrameApi }) {
   return (
     <div className="space-y-3">
       <div className="flex items-center justify-between">
-        <p className="text-sm text-muted">Fill the whole grid using every piece.</p>
+        <p className="text-sm text-muted">
+          <strong className="text-ink">{BLOCK_VARIANT_LABEL[variant]}.</strong>{' '}
+          {variant === 'spare' ? 'Fill the whole grid. One piece in the tray is a spare, so leave it out.' : variant === 'silhouette' ? 'Fill the whole shape using every piece.' : 'Fill the whole grid using every piece.'}
+        </p>
         <button type="button" className="btn min-h-10 px-3" onClick={() => setResetKey((k) => k + 1)} disabled={locked}>
           Reset round
         </button>

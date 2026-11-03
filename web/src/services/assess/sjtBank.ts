@@ -1,5 +1,5 @@
-export type SjtTheme = 'deadline' | 'client' | 'ethics' | 'team' | 'clarity';
-export type SjtTag = 'ownership' | 'integrity' | 'client' | 'escalation' | 'communication';
+export type SjtTheme = 'deadline' | 'client' | 'ethics' | 'team' | 'clarity' | 'growth' | 'inclusion' | 'customer' | 'collab' | 'impact' | 'data';
+export type SjtTag = 'ownership' | 'integrity' | 'client' | 'escalation' | 'communication' | 'learning' | 'inclusion' | 'impact' | 'responsibility';
 
 export const SJT_TAG_LABEL: Record<SjtTag, string> = {
   ownership: 'Ownership',
@@ -7,6 +7,10 @@ export const SJT_TAG_LABEL: Record<SjtTag, string> = {
   client: 'Client focus',
   escalation: 'Escalating appropriately',
   communication: 'Communication',
+  learning: 'Growth mindset',
+  inclusion: 'Inclusion',
+  impact: 'Making an impact',
+  responsibility: 'Responsible technology',
 };
 
 export const SJT_THEME_LABEL: Record<SjtTheme, string> = {
@@ -15,6 +19,12 @@ export const SJT_THEME_LABEL: Record<SjtTheme, string> = {
   ethics: 'Ethical issue',
   team: 'Team conflict',
   clarity: 'Unclear instructions',
+  growth: 'Learning from feedback',
+  inclusion: 'Inclusive teamwork',
+  customer: 'Customer first',
+  collab: 'Working across teams',
+  impact: 'Taking initiative',
+  data: 'Responsible data and AI',
 };
 
 export interface SjtOption {
@@ -32,8 +42,8 @@ export interface SjtScenario {
   options: [SjtOption, SjtOption, SjtOption, SjtOption];
 }
 
-type Row = [string, SjtTag, string];
-const sc = (id: string, theme: SjtTheme, situation: string, o: [Row, Row, Row, Row]): SjtScenario => ({
+export type Row = [string, SjtTag, string];
+export const sc = (id: string, theme: SjtTheme, situation: string, o: [Row, Row, Row, Row]): SjtScenario => ({
   id,
   theme,
   situation,

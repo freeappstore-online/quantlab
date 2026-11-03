@@ -1,9 +1,10 @@
 import { useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
-import { generateBubbleRound } from '../../../services/assess/bubbles';
+import { bubbleKindFor, generateBubbleRound, generateStreamSpec, isStreamKind } from '../../../services/assess/bubbles';
 import type { GameResult } from '../../../services/assess/types';
 import { clamp, mean, seededRng } from '../../../services/assess/util';
 import type { FrameApi } from '../api';
 import { OKABE } from '../palette';
+import { BubbleStream } from './BubbleStream';
 
 const ROUNDS = 12;
 const TUTORIAL_ROUNDS = 2;
@@ -36,7 +37,14 @@ export function BubbleOrder({ api }: { api: FrameApi }) {
   const alive = useRef(true);
 
   const level = api.level(round, total);
+  const kind = bubbleKindFor(round, api.phase === 'tutorial');
+  const stream = isStreamKind(kind);
   const puzzle = useMemo(() => generateBubbleRound(seededRng(api.seed, round), level), [api.seed, round, level]);
+  const spec = useMemo(
+    () => (stream ? generateStreamSpec(seededRng(api.seed, round + 500), kind as 'equals' | 'below' | 'above', level, api.phase === 'tutorial') : null),
+    [api.seed, round, level, kind, stream, api.phase],
+  );
+  const order = useMemo(() => (kind === 'desc' ? puzzle.order.slice().reverse() : puzzle.order), [puzzle, kind]);
   const { setHud, finish, sound } = api;
 
   useEffect(() => {
@@ -148,7 +156,7 @@ export function BubbleOrder({ api }: { api: FrameApi }) {
 
   const pop = (id: number): void => {
     if (status !== 'play' || popped.includes(id)) return;
-    const expected = puzzle.order[popped.length];
+    const expected = order[popped.length];
     const now = performance.now();
     if (id === expected) {
       stats.current.good += 1;
@@ -157,7 +165,7 @@ export function BubbleOrder({ api }: { api: FrameApi }) {
       sound('good');
       const next = [...popped, id];
       setPopped(next);
-      if (next.length === puzzle.order.length) {
+      if (next.length === order.length) {
         stats.current.cleared += 1;
         setCleared(stats.current.cleared);
         setStatus('cleared');
@@ -172,11 +180,53 @@ export function BubbleOrder({ api }: { api: FrameApi }) {
     }
   };
 
-  const rankOf = (id: number): number => puzzle.order.indexOf(id) + 1;
+  const rankOf = (id: number): number => order.indexOf(id) + 1;
+
+  const onStreamEnd = (outcome: 'cleared' | 'failed'): void => {
+    if (outcome === 'cleared') {
+      stats.current.cleared += 1;
+      setCleared(stats.current.cleared);
+      setStatus('cleared');
+      sound('good');
+    } else {
+      setStatus('failed');
+      sound('bad');
+    }
+    advance(outcome === 'cleared' ? 800 : 1800, false);
+  };
+
+  if (stream && spec) {
+    return (
+      <div className="space-y-2">
+        <BubbleStream
+          key={`${round}-${attempt}`}
+          spec={spec}
+          level={level}
+          seed={api.seed + round * 31 + attempt}
+          onGood={(ms) => {
+            stats.current.good += 1;
+            stats.current.times.push(ms);
+            sound('good');
+          }}
+          onBad={() => {
+            stats.current.bad += 1;
+            sound('bad');
+          }}
+          onEnd={onStreamEnd}
+        />
+        <p className="min-h-5 text-center text-sm font-semibold" role="status" aria-live="polite">
+          {status === 'cleared' && '✓ Round cleared'}
+          {status === 'failed' && '✗ Too many wrong pops. Round over.'}
+        </p>
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-3">
-      <p className="text-sm text-muted">Pop the bubbles from the smallest value to the largest. One wrong pop ends the round.</p>
+      <p className="text-sm text-muted">
+        {kind === 'desc' ? 'Pop the bubbles from the largest value to the smallest.' : 'Pop the bubbles from the smallest value to the largest.'} One wrong pop ends the round.
+      </p>
       <div
         ref={arena}
         className="relative w-full overflow-hidden rounded-xl border border-border bg-surface"
@@ -219,7 +269,7 @@ export function BubbleOrder({ api }: { api: FrameApi }) {
       <p className="min-h-6 text-center text-sm font-semibold" role="status" aria-live="polite">
         {status === 'cleared' && '✓ Round cleared'}
         {status === 'failed' && (api.phase === 'tutorial' ? '✗ Not that one. The numbers show the right order. Try again.' : '✗ Wrong pop. The numbers show the right order.')}
-        {status === 'play' && popped.length > 0 && `${popped.length} of ${puzzle.order.length} popped`}
+        {status === 'play' && popped.length > 0 && `${popped.length} of ${order.length} popped`}
       </p>
     </div>
   );

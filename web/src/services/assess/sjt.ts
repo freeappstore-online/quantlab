@@ -1,6 +1,10 @@
 import type { Rng } from '../rng';
 import { SJT_SCENARIOS, type SjtScenario } from './sjtBank';
+import { SJT_SCENARIOS_B } from './sjtBankB';
 import { shuffle } from './util';
+
+/** The full bank: the original scenarios plus the technology-workplace set. */
+export const SJT_ALL: SjtScenario[] = [...SJT_SCENARIOS, ...SJT_SCENARIOS_B];
 
 export interface SjtItem {
   scenario: SjtScenario;
@@ -10,7 +14,7 @@ export interface SjtItem {
 
 /** Picks distinct scenarios and shuffles the options so the expert order is never the screen order. */
 export function generateSjtItems(rng: Rng, count: number): SjtItem[] {
-  const picked = shuffle(rng, SJT_SCENARIOS).slice(0, count);
+  const picked = shuffle(rng, SJT_ALL).slice(0, count);
   return picked.map((scenario) => {
     let shown = shuffle(rng, [0, 1, 2, 3]);
     // Avoid showing the answer key order.

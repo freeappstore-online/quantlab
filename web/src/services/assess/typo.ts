@@ -227,7 +227,30 @@ export interface PassageOptions {
   exclude?: readonly number[];
   /** Force a particular template (used by tests). */
   templateIndex?: number;
+  /** Only switch on errors of these kinds (a focused passage). */
+  kinds?: readonly TypoKind[];
 }
+
+export type TypoVariant = 'full' | 'spelling' | 'wording' | 'careful';
+
+export interface TypoVariantInfo {
+  label: string;
+  hint: string;
+  kinds?: readonly TypoKind[];
+  min: number;
+  max: number;
+  maxWrong: number;
+}
+
+export const TYPO_VARIANTS: Record<TypoVariant, TypoVariantInfo> = {
+  full: { label: 'Full proofread', hint: 'Find every kind of error.', min: 16, max: 22, maxWrong: 3 },
+  spelling: { label: 'Spelling focus', hint: 'Only spelling, stray letters and missing capitals count here.', kinds: ['spelling', 'stray', 'capital'], min: 10, max: 14, maxWrong: 3 },
+  wording: { label: 'Wording and punctuation', hint: 'Only wrong words, apostrophes, missing full stops and repeated words count here.', kinds: ['wrongword', 'apostrophe', 'fullstop', 'doubled'], min: 10, max: 14, maxWrong: 3 },
+  careful: { label: 'Careful read', hint: 'Every kind of error, but only two wrong clicks are allowed.', min: 12, max: 16, maxWrong: 2 },
+};
+
+/** Passage types in order. The tutorial uses the first two with fewer errors. */
+export const TYPO_SCHEDULE: TypoVariant[] = ['full', 'spelling', 'wording', 'careful', 'full', 'wording', 'spelling', 'careful'];
 
 /** Builds one passage: picks a template, switches on a mix of error slots and tokenises the text. */
 export function generatePassage(rng: Rng, opts: PassageOptions): TypoPassage {
@@ -246,7 +269,7 @@ export function generatePassage(rng: Rng, opts: PassageOptions): TypoPassage {
   const target = int(rng, opts.minErrors, opts.maxErrors);
   // One slot of every kind first so the mix is varied, then fill up at random.
   const byKind = new Map<TypoKind, Slot[]>();
-  for (const sl of slots) byKind.set(sl.kind, [...(byKind.get(sl.kind) ?? []), sl]);
+  for (const sl of slots.filter((x) => !opts.kinds || opts.kinds.includes(x.kind))) byKind.set(sl.kind, [...(byKind.get(sl.kind) ?? []), sl]);
   for (const list of shuffle(rng, [...byKind.values()])) {
     if (chosen.size < target) tryAdd(pick(rng, list));
   }

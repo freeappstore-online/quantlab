@@ -1,7 +1,7 @@
 import { shuffle } from './util';
 import type { Rng } from '../rng';
 
-export type Trait = 'teamwork' | 'drive' | 'analytical' | 'flexibility' | 'openness';
+export type Trait = 'teamwork' | 'drive' | 'analytical' | 'flexibility' | 'openness' | 'growth' | 'customer' | 'inclusion' | 'accountability';
 
 export const TRAIT_LABEL: Record<Trait, string> = {
   teamwork: 'Teamwork',
@@ -9,6 +9,10 @@ export const TRAIT_LABEL: Record<Trait, string> = {
   analytical: 'Analytical thinking',
   flexibility: 'Flexibility',
   openness: 'Openness to change',
+  growth: 'Growth mindset',
+  customer: 'Customer focus',
+  inclusion: 'Inclusive mindset',
+  accountability: 'Accountability',
 };
 
 export interface Statement {
@@ -38,6 +42,18 @@ const PAIRS: [Trait, string, string][] = [
   ['openness', 'I welcome new ways of working.', 'I prefer to keep processes the way they are.'],
   ['openness', 'I enjoy learning new tools and methods.', 'I avoid new tools if I can.'],
   ['openness', 'I always look for ways to improve how things are done.', 'I rarely think about improving how things are done.'],
+  ['growth', 'I see mistakes as a chance to learn.', 'I find it hard to learn from my mistakes.'],
+  ['growth', 'I ask for feedback even when it might be critical.', 'I would rather not hear criticism of my work.'],
+  ['growth', 'I am comfortable saying "I don’t know yet" and then finding out.', 'I dislike admitting when I do not know something.'],
+  ['customer', 'I try to understand what the user is really trying to do before building anything.', 'I build what is asked without wondering who it is for.'],
+  ['customer', 'I would rather fix a problem that matters to customers than one that is more interesting to me.', 'I would rather work on what interests me than on what customers need.'],
+  ['customer', 'I follow up to check that people were actually helped by my work.', 'Once my work is delivered, I do not check whether it helped anyone.'],
+  ['inclusion', 'I make a point of hearing from the quieter people in a group.', 'I mainly listen to the people who speak the most.'],
+  ['inclusion', 'I adjust the way I work so that everyone on the team can take part.', 'I expect others to fit in with the way I like to work.'],
+  ['inclusion', 'I enjoy working with people whose backgrounds differ from mine.', 'I feel most comfortable working with people similar to me.'],
+  ['accountability', 'I admit it quickly when something I did has gone wrong.', 'I tend to hold back when something I did has gone wrong.'],
+  ['accountability', 'I do what I say I will do, or tell people early if I cannot.', 'I sometimes let commitments slip without telling anyone.'],
+  ['accountability', 'I take responsibility for the quality of my work even when no one is checking.', 'I only put in extra care when someone is checking.'],
 ];
 
 export const STATEMENTS: Statement[] = PAIRS.flatMap(([trait, a, b], i): Statement[] => [

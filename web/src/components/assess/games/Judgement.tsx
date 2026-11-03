@@ -7,9 +7,9 @@ import { absoluteExtremes, chooseStatements, findConflicts, LIKERT_LABELS, pairC
 import type { FrameApi } from '../api';
 import { OKABE } from '../palette';
 
-const SCENARIOS = 6;
+const SCENARIOS = 8;
 const TUTORIAL_SCENARIOS = 2;
-const PAIRS = 7;
+const PAIRS = 10;
 
 const RANK_WORDS = ['Most effective', '2nd', '3rd', 'Least effective'];
 

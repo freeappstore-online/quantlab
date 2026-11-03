@@ -1,20 +1,26 @@
 import { useEffect, useRef, useState } from 'react';
-import { generatePassage, TYPO_KIND_LABEL, type TypoPassage } from '../../../services/assess/typo';
+import { generatePassage, TYPO_KIND_LABEL, TYPO_SCHEDULE, TYPO_VARIANTS, type TypoPassage, type TypoVariant } from '../../../services/assess/typo';
 import type { GameResult } from '../../../services/assess/types';
 import { mean, seededRng } from '../../../services/assess/util';
 import type { FrameApi } from '../api';
 import { OKABE } from '../palette';
 
-const PASSAGES = 5;
+const PASSAGES = 8;
 const TUTORIAL_PASSAGES = 2;
-const MAX_WRONG = 3;
 
 export function TypoHunt({ api }: { api: FrameApi }) {
   const total = api.phase === 'tutorial' ? TUTORIAL_PASSAGES : PASSAGES;
   const tutorial = api.phase === 'tutorial';
   const used = useRef<number[]>([]);
+  const variantOf = (i: number): TypoVariant => TYPO_SCHEDULE[i % TYPO_SCHEDULE.length];
   const make = (i: number): TypoPassage => {
-    const p = generatePassage(seededRng(api.seed, i), tutorial ? { minErrors: 6, maxErrors: 8, exclude: used.current } : { minErrors: 14, maxErrors: 22, exclude: used.current });
+    const v = TYPO_VARIANTS[variantOf(i)];
+    const p = generatePassage(seededRng(api.seed, i), {
+      minErrors: tutorial ? 6 : v.min,
+      maxErrors: tutorial ? 8 : v.max,
+      kinds: v.kinds,
+      exclude: used.current,
+    });
     used.current.push(p.templateIndex);
     return p;
   };
@@ -32,6 +38,8 @@ export function TypoHunt({ api }: { api: FrameApi }) {
   const finished = useRef(false);
   const { setHud, finish, sound, resetTimer, setTimerRunning } = api;
 
+  const variant = TYPO_VARIANTS[variantOf(index)];
+  const MAX_WRONG = variant.maxWrong;
   const remaining = passage.errors.length - found.length;
 
   useEffect(() => {
@@ -48,7 +56,7 @@ export function TypoHunt({ api }: { api: FrameApi }) {
         </span>
       ),
     });
-  }, [setHud, index, total, remaining, wrong]);
+  }, [setHud, index, total, remaining, wrong, MAX_WRONG]);
 
   const endPassage = (reason: string, foundNow: number, wrongNow: number): void => {
     if (stage !== 'play') return;
@@ -86,7 +94,7 @@ export function TypoHunt({ api }: { api: FrameApi }) {
       setFlags((f) => ({ ...f, [i]: 'bad' }));
       setWrong(w);
       sound('bad');
-      if (w >= MAX_WRONG) endPassage('Three incorrect flags ends the passage.', found.length, w);
+      if (w >= MAX_WRONG) endPassage(`${MAX_WRONG === 2 ? 'Two' : 'Three'} incorrect flags ends the passage.`, found.length, w);
     }
   };
 
@@ -128,7 +136,9 @@ export function TypoHunt({ api }: { api: FrameApi }) {
       {stage === 'play' ? (
         <>
           <div className="flex items-center justify-between gap-2">
-            <p className="text-sm text-muted">Click each word that contains an error. Three wrong clicks end the passage.</p>
+            <p className="text-sm text-muted">
+              <strong className="text-ink">{variant.label}.</strong> {variant.hint} Click each word with an error. {MAX_WRONG === 2 ? 'Two' : 'Three'} wrong clicks end the passage.
+            </p>
             <div className="flex shrink-0 gap-1">
               <button type="button" className="btn min-h-10 px-3" aria-label="Scroll up" onClick={() => scrollBy(-120)}>
                 {'▲'}

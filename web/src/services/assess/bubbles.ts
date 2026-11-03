@@ -148,3 +148,136 @@ export function generateBubbleRound(rng: Rng, t: number): BubbleRound {
   const bubbles = [5, 12, 20].map((v, id): Bubble => ({ id, text: `${v}+0`, value: frac(v) }));
   return { bubbles, order: [0, 1, 2] };
 }
+
+/* ------------------------------------------------------------------ Stream rounds */
+
+/** Ordering rounds use a fixed set of bubbles; stream rounds keep sending equations until the goal is met. */
+export type BubbleKind = 'asc' | 'desc' | 'equals' | 'below' | 'above';
+
+export const isStreamKind = (k: BubbleKind): boolean => k === 'equals' || k === 'below' || k === 'above';
+
+export const BUBBLE_KINDS: BubbleKind[] = ['asc', 'equals', 'desc', 'below', 'asc', 'equals', 'above', 'desc', 'equals', 'below', 'above', 'equals'];
+
+export function bubbleKindFor(round: number, tutorial: boolean): BubbleKind {
+  if (tutorial) return round === 0 ? 'asc' : 'equals';
+  return BUBBLE_KINDS[round % BUBBLE_KINDS.length];
+}
+
+export interface StreamSpec {
+  kind: 'equals' | 'below' | 'above';
+  target: number;
+  /** Matching bubbles to pop to clear the round. */
+  goal: number;
+  /** Wrong pops allowed before the round ends. */
+  strikes: number;
+}
+
+export interface StreamBubble {
+  text: string;
+  value: number;
+  match: boolean;
+}
+
+export type Op = '+' | typeof MINUS | typeof MUL | typeof DIV;
+const OPS: Op[] = ['+', MINUS, MUL, DIV];
+
+/** Evaluates the simple "a op b" strings made by `equationFor`. */
+export function evaluate(text: string): number {
+  const m = /^(\d+)([+−×÷])(\d+)$/.exec(text);
+  if (!m) return NaN;
+  const a = Number(m[1]);
+  const b = Number(m[3]);
+  return m[2] === '+' ? a + b : m[2] === MINUS ? a - b : m[2] === MUL ? a * b : a / b;
+}
+
+const divisors = (n: number): number[] => {
+  const out: number[] = [];
+  for (let d = 2; d < n; d++) if (n % d === 0) out.push(d);
+  return out;
+};
+
+/** One equation with the given whole-number value using the given operation, or null if that is not possible. */
+export function equationFor(rng: Rng, value: number, op: Op, t: number): string | null {
+  switch (op) {
+    case '+': {
+      if (value < 3) return null;
+      const a = int(rng, 1, value - 1);
+      return `${a}+${value - a}`;
+    }
+    case MINUS: {
+      const b = int(rng, 2, Math.round(9 + t * 40));
+      return `${value + b}${MINUS}${b}`;
+    }
+    case MUL: {
+      const ds = divisors(value);
+      if (ds.length === 0) return null;
+      const a = pick(rng, ds);
+      return `${a}${MUL}${value / a}`;
+    }
+    default: {
+      const b = int(rng, 2, Math.round(6 + t * 6));
+      return `${value * b}${DIV}${b}`;
+    }
+  }
+}
+
+/** An equation worth `value`, trying the operations in random order. */
+export function anyEquation(rng: Rng, value: number, t: number): string {
+  for (const op of shuffle(rng, OPS)) {
+    const e = equationFor(rng, value, op, t);
+    if (e) return e;
+  }
+  return `${value}+0`;
+}
+
+export function generateStreamSpec(rng: Rng, kind: StreamSpec['kind'], t: number, tutorial: boolean): StreamSpec {
+  // Composite targets so multiplication and division equations exist for them.
+  const top = Math.round(36 + t * 108);
+  let target = int(rng, 14, top);
+  while (divisors(target).length === 0) target++;
+  return { kind, target, goal: tutorial ? 4 : 5 + Math.round(t * 4), strikes: tutorial ? 99 : 3 };
+}
+
+export const matches = (spec: Pick<StreamSpec, 'kind' | 'target'>, value: number): boolean =>
+  spec.kind === 'equals' ? value === spec.target : spec.kind === 'below' ? value < spec.target : value > spec.target;
+
+/** The next bubble of a stream. Distractors sit close to the target so each one needs working out. */
+export function makeStreamBubble(rng: Rng, spec: StreamSpec, t: number, wantMatch: boolean): StreamBubble {
+  const reach = Math.max(3, Math.round(4 + t * 10));
+  for (let tries = 0; tries < 50; tries++) {
+    const gap = int(rng, 1, reach);
+    let value: number;
+    if (spec.kind === 'equals') value = wantMatch ? spec.target : spec.target + (chance(rng, 0.5) ? gap : -gap);
+    else if (spec.kind === 'below') value = wantMatch ? spec.target - gap : spec.target + int(rng, 0, reach);
+    else value = wantMatch ? spec.target + gap : spec.target - int(rng, 0, reach);
+    if (value < 1) continue;
+    if (matches(spec, value) !== wantMatch) continue;
+    return { text: anyEquation(rng, value, t), value, match: wantMatch };
+  }
+  return { text: `${spec.target}+0`, value: spec.target, match: spec.kind === 'equals' };
+}
+
+export interface StreamPace {
+  /** Time between waves of new bubbles. */
+  intervalMs: number;
+  /** Bubbles per wave. */
+  wave: number;
+  /** Drift speed multiplier. */
+  speed: number;
+  /** How long a bubble stays before it fades away. */
+  lifeMs: number;
+  /** Most bubbles on screen at once. */
+  cap: number;
+}
+
+/** Equations arrive faster, in bigger waves and move quicker the longer a round (and the whole test) goes on. */
+export function streamPace(t: number, elapsedMs: number): StreamPace {
+  const e = elapsedMs / 1000;
+  return {
+    intervalMs: Math.max(520, (1700 - t * 500) / (1 + e / 16)),
+    wave: Math.min(4, 1 + Math.floor(e / 12) + (t > 0.5 ? 1 : 0)),
+    speed: Math.min(2.4, (1 + t * 0.5) * (1 + e / 40)),
+    lifeMs: Math.max(4200, 9500 - t * 2500 - e * 70),
+    cap: Math.min(14, 6 + Math.floor(e / 8) + Math.round(t * 3)),
+  };
+}

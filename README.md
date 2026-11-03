@@ -26,6 +26,8 @@ History shows a score trend with a 5-session average and a worst-first table of 
 
 A second module at `/assess` with seven original practice games: Block Fit, Typo Hunt, Bubble Order, Sum Compare, Mirror Turn, Shortest Route and Workplace Judgement (30 scenarios plus a work-style questionnaire). Each has an intro, an untimed two-round tutorial, a timed test with rising difficulty, a results screen with a personal-best comparison and a tip, and a history chart. Full Assessment runs them all back to back. Settings: study mode (no timers), difficulty override, sound (off by default).
 
+Round types vary within each game: Block Fit has classic grids, fixed silhouettes and trays with a spare piece (14 rounds); Typo Hunt has full, spelling-focus, wording-and-punctuation and careful-read passages (8 passages); Bubble Order mixes ascending and descending ordering with stream rounds where equations (all four operations) keep arriving, faster and in bigger waves, and you pop those equal to, below or above a target that changes every round; Workplace Judgement has 60 scenarios, including technology-workplace ones on learning from feedback, inclusion, customers, cross-team work, initiative and responsible data and AI, and a 54-statement work-style bank.
+
 Puzzles are generated from a seeded RNG and checked for solvability. Add `?seed=123` to a game URL for a reproducible run. Colours come from a colour-blind-safe palette and every state also has a letter or symbol. Code lives in `web/src/services/assess/` (generators, banks, tests) and `web/src/components/assess/`.
 
 ## Data stored in the browser

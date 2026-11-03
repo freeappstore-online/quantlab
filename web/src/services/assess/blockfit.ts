@@ -9,7 +9,17 @@ export interface Piece {
   cells: Cell[];
 }
 
+/** Classic rectangles, fixed silhouettes, or a tray with one spare piece that does not belong. */
+export type BlockVariant = 'classic' | 'silhouette' | 'spare';
+
+export const BLOCK_VARIANT_LABEL: Record<BlockVariant, string> = {
+  classic: 'Classic grid',
+  silhouette: 'Silhouette',
+  spare: 'Spare piece',
+};
+
 export interface BlockPuzzle {
+  variant: BlockVariant;
   rows: number;
   cols: number;
   /** true where the grid must be filled. */
@@ -102,7 +112,7 @@ export function regionCells(region: boolean[][]): Cell[] {
  * Exact-cover search: can these pieces, turned freely, fill the region exactly?
  * Every generated puzzle is run through this before it is shown.
  */
-export function solveBlockFit(region: boolean[][], pieces: readonly Piece[]): boolean {
+export function solveBlockFit(region: boolean[][], pieces: readonly Piece[], allowSpare = false): boolean {
   const rows = region.length;
   const cols = region[0].length;
   const blocked = region.map((row) => row.map((v) => !v));
@@ -116,7 +126,7 @@ export function solveBlockFit(region: boolean[][], pieces: readonly Piece[]): bo
 
   const recurse = (): boolean => {
     const empty = firstEmpty();
-    if (!empty) return used.every(Boolean);
+    if (!empty) return allowSpare || used.every(Boolean);
     for (let i = 0; i < pieces.length; i++) {
       if (used[i]) continue;
       for (const cells of orient[i]) {
@@ -188,22 +198,67 @@ function makeRegion(rng: Rng, t: number): boolean[][] {
   return region;
 }
 
+/** Fixed silhouettes. '#' is a cell to fill. They are also flipped and turned at random. */
+const SILHOUETTES: string[][] = [
+  ['..#..', '..#..', '#####', '..#..', '..#..'],
+  ['####', '#..#', '#..#', '####'],
+  ['#....', '#....', '#....', '#....', '#####'],
+  ['#....', '##...', '###..', '####.', '#####'],
+  ['#...#', '#...#', '#####', '#...#', '#...#'],
+  ['..#..', '.###.', '#####', '.###.', '..#..'],
+  ['#####', '#...#', '#...#', '#...#', '#####'],
+  ['#####', '.###.', '..#..'],
+  ['##..##', '######', '######', '##..##'],
+  ['.####.', '######', '######', '.####.'],
+  ['###...', '###...', '######', '...###', '...###'],
+  ['#.#.#', '#####', '.###.', '#####'],
+];
+
+function silhouetteRegion(rng: Rng): boolean[][] {
+  const rows = SILHOUETTES[Math.floor(rng() * SILHOUETTES.length)].map((line) => [...line].map((ch) => ch === '#'));
+  let out = rows;
+  if (chance(rng, 0.5)) out = out[0].map((_, c) => out.map((row) => row[c]));
+  if (chance(rng, 0.5)) out = out.map((row) => row.slice().reverse());
+  if (chance(rng, 0.5)) out = out.slice().reverse();
+  return out;
+}
+
+/** A random connected piece of `size` cells, used as the spare. */
+function randomPiece(rng: Rng, size: number): Cell[] {
+  const cells: Cell[] = [[0, 0]];
+  while (cells.length < size) {
+    const [r, c] = cells[Math.floor(rng() * cells.length)];
+    const [dr, dc] = DIRS[Math.floor(rng() * DIRS.length)];
+    if (!cells.some((x) => x[0] === r + dr && x[1] === c + dc)) cells.push([r + dr, c + dc]);
+  }
+  return normalise(cells);
+}
+
 /** A solvable Block Fit round. `t` is the difficulty from 0 to 1. */
-export function generateBlockPuzzle(rng: Rng, t: number): BlockPuzzle {
-  for (let attempt = 0; attempt < 120; attempt++) {
-    const region = makeRegion(rng, t);
+export function generateBlockPuzzle(rng: Rng, t: number, variant: BlockVariant = 'classic'): BlockPuzzle {
+  for (let attempt = 0; attempt < 160; attempt++) {
+    const region = variant === 'silhouette' ? silhouetteRegion(rng) : makeRegion(rng, t);
     const n = regionCells(region).length;
-    const kMax = Math.min(8, Math.floor(n / 2));
-    const k = clamp(Math.round(2 + t * 6 + (rng() - 0.5) * 2), 2, kMax);
-    const groups = partition(rng, region, k, attempt < 80 ? 2 : 1);
+    const kMax = Math.min(variant === 'spare' ? 7 : 8, Math.floor(n / 2));
+    const k = clamp(Math.round(2 + t * 5 + (rng() - 0.5) * 2) + (variant === 'silhouette' ? 1 : 0), 2, kMax);
+    const groups = partition(rng, region, k, attempt < 100 ? 2 : 1);
     if (!groups) continue;
-    const pieces = shuffle(rng, groups).map((cells, i): Piece => ({ id: i, cells: rotated(cells, int(rng, 0, 3)) }));
-    if (solveBlockFit(region, pieces)) {
-      return { rows: region.length, cols: region[0].length, region, pieces };
+    const shapes: Cell[][] = groups.map((cells) => rotated(cells, int(rng, 0, 3)));
+    if (variant === 'spare') shapes.push(randomPiece(rng, int(rng, 3, 4)));
+    const pieces = shuffle(rng, shapes).map((cells, i): Piece => ({ id: i, cells }));
+    if (solveBlockFit(region, pieces, variant === 'spare')) {
+      return { variant, rows: region.length, cols: region[0].length, region, pieces };
     }
   }
   // Practically unreachable: fall back to three straight pieces that tile a 3x3 grid by rows.
   const region = Array.from({ length: 3 }, () => Array.from({ length: 3 }, () => true));
   const bar: Cell[] = [[0, 0], [0, 1], [0, 2]];
-  return { rows: 3, cols: 3, region, pieces: [0, 1, 2].map((id): Piece => ({ id, cells: normalise(bar) })) };
+  return { variant: 'classic', rows: 3, cols: 3, region, pieces: [0, 1, 2].map((id): Piece => ({ id, cells: normalise(bar) })) };
+}
+
+/** Round type for each round: mostly classic early, then silhouettes and spare pieces. */
+export function blockVariantFor(round: number, tutorial: boolean): BlockVariant {
+  if (tutorial) return round === 0 ? 'classic' : 'spare';
+  const cycle: BlockVariant[] = ['classic', 'silhouette', 'classic', 'spare', 'silhouette', 'spare'];
+  return round < 2 ? 'classic' : cycle[(round - 2) % cycle.length] ?? 'classic';
 }
