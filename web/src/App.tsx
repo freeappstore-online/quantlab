@@ -1,5 +1,5 @@
 import { initApp } from '@freeappstore/sdk'
-import { BuildInfo, type NavItem, Shell } from '@freeappstore/sdk/ui'
+import { BuildInfo, NavBar, type NavItem, Shell } from '@freeappstore/sdk/ui'
 import { About } from './components/About'
 import { AssessHistory } from './components/assess/AssessHistory'
 import { AssessHub } from './components/assess/AssessHub'
@@ -76,7 +76,20 @@ export default function App() {
   const focused = route.name === 'play' || route.name === 'assessPlay' || route.name === 'assessFull'
 
   return (
-    <Shell app={fas} appName="QuantLab" nav={NAV} onNavigate={go}>
+    <Shell
+      app={fas}
+      appName="QuantLab"
+      nav={NAV}
+      onNavigate={go}
+      renderNav={({ items, currentPath, onNavigate }) => (
+        <div className="flex min-w-0 flex-1 items-center">
+          <NavBar items={items} currentPath={currentPath} onNavigate={onNavigate} />
+          <a href="https://freeappstore.online" className="exit-link" aria-label="Exit QuantLab to the app store">
+            Exit
+          </a>
+        </div>
+      )}
+    >
       {store.saveFailed && (
         <div role="alert" className="bg-danger-soft px-4 py-2 text-center text-sm text-danger">
           This browser is blocking storage, so your history will not be saved after you close the tab.

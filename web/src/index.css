@@ -273,9 +273,42 @@ a:focus-visible {
   }
 }
 
-/* On the narrowest phones (320px) the Shell topbar is 13px too wide with the app name beside the Free logo.
-   Hide just that label there; the page heading and tab title still carry the name. */
-@media (max-width: 340px) {
+/* Shell topbar: the app name is the brand (bold, ink, divided from the nav) and the platform "Free" link is
+   replaced by an Exit link rendered in App.tsx. */
+header > div:first-child > a[href='https://freeappstore.online'] {
+  display: none;
+}
+header > div:first-child > span {
+  font-size: 1.05rem !important;
+  font-weight: 800 !important;
+  color: var(--ink) !important;
+  letter-spacing: -0.01em;
+  padding-right: 0.75rem;
+  margin-right: 0.25rem;
+  border-right: 1px solid var(--line);
+}
+.exit-link {
+  display: inline-flex;
+  align-items: center;
+  min-height: 44px;
+  margin-left: 0.5rem;
+  padding: 0 0.75rem;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-sm, 10px);
+  color: var(--ink);
+  font-size: 0.9rem;
+  font-weight: 600;
+  text-decoration: none;
+  white-space: nowrap;
+}
+.exit-link:hover {
+  background: var(--line);
+}
+.exit-link:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+@media (max-width: 400px) {
   header > div:first-child > span {
     display: none;
   }
