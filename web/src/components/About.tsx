@@ -30,8 +30,8 @@ export function About() {
 
       <h2 className="mt-6 text-base font-semibold">What is stored</h2>
       <p className="mt-2 text-sm">
-        QuantLab keeps two entries in this browser's localStorage: <code className="font-mono">quantlab:v1:sessions</code> (score, accuracy, timing and per-category totals for your last 300 runs) and{' '}
-        <code className="font-mono">quantlab:v1:settings</code> (your preferences). QuantLab sets no cookies, has no accounts and never sends your scores anywhere. Everything works offline after the first visit. Export or delete your history any time in Settings.
+        QuantLab keeps four entries in this browser's localStorage: <code className="font-mono">quantlab:v1:sessions</code> (score, accuracy, timing and per-category totals for your last 300 runs) and{' '}
+        <code className="font-mono">quantlab:v1:settings</code> (your preferences), plus <code className="font-mono">quantlab:v1:assess-results</code> and <code className="font-mono">quantlab:v1:assess-settings</code> for the Assessment Trainer. QuantLab sets no cookies, has no accounts and never sends your scores anywhere. Everything works offline after the first visit. Export or delete your history any time in Settings.
       </p>
 
       <h2 className="mt-6 text-base font-semibold">Open source</h2>

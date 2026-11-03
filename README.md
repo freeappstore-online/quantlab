@@ -22,14 +22,22 @@ Each mode has Easy, Medium and Hard. Correct answers on exact-answer questions a
 
 History shows a score trend with a 5-session average and a worst-first table of the question types costing you points.
 
+## Game-Based Assessment Trainer
+
+A second module at `/assess` with seven original practice games: Block Fit, Typo Hunt, Bubble Order, Sum Compare, Mirror Turn, Shortest Route and Workplace Judgement (30 scenarios plus a work-style questionnaire). Each has an intro, an untimed two-round tutorial, a timed test with rising difficulty, a results screen with a personal-best comparison and a tip, and a history chart. Full Assessment runs them all back to back. Settings: study mode (no timers), difficulty override, sound (off by default).
+
+Puzzles are generated from a seeded RNG and checked for solvability. Add `?seed=123` to a game URL for a reproducible run. Colours come from a colour-blind-safe palette and every state also has a letter or symbol. Code lives in `web/src/services/assess/` (generators, banks, tests) and `web/src/components/assess/`.
+
 ## Data stored in the browser
 
-Two localStorage keys, written through `web/src/services/storage.ts`:
+Four localStorage keys, written through `web/src/services/storage.ts` and `web/src/services/assess/storage.ts`:
 
 | Key | Contents |
 | --- | --- |
 | `quantlab:v1:sessions` | Last 300 runs: mode, difficulty, time, score, attempted, correct, average time per correct answer, best streak, per-category totals |
 | `quantlab:v1:settings` | Auto-advance, keypad preference, last difficulty per mode |
+| `quantlab:v1:assess-results` | Assessment results: game, score, accuracy, average time per item |
+| `quantlab:v1:assess-settings` | Study mode, difficulty override, sound |
 
 Settings has Export as JSON and Delete history.
 
@@ -60,6 +68,8 @@ web/src/
     modes.ts           mode configs and labels
     scoring.ts         correctness, session summary
     storage.ts         typed, validated localStorage adapter
+  services/assess/     assessment generators, text and scenario banks, storage
+  components/assess/   assessment hub, game frame, the seven games
   components/          Home, Drill, Keypad, Results, History, TrendChart, SettingsView, About, Link
 ```
 

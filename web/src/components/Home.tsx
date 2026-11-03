@@ -47,6 +47,19 @@ export function Home({ sessions }: { sessions: readonly Session[] }) {
         })}
       </div>
 
+      <Link
+        to="/assess"
+        className="card mt-3 block p-4 text-ink no-underline transition-colors hover:border-accent focus-visible:border-accent"
+      >
+        <div className="flex items-baseline justify-between gap-2">
+          <h2 className="text-lg font-semibold">Game-Based Assessment Trainer</h2>
+          <span className="text-xs text-muted">7 modules</span>
+        </div>
+        <p className="mt-1 text-sm text-muted">
+          Timed mini-games for spatial reasoning, proofreading, number sense and planning, plus workplace judgement questions. Unlimited fresh puzzles.
+        </p>
+      </Link>
+
       {sessions.length === 0 && (
         <p className="mt-6 rounded-xl bg-accent-soft p-4 text-sm text-accent-ink">
           New here? Start with Arithmetic Sprint on Medium. It takes two minutes and sets your first benchmark.

@@ -1,8 +1,10 @@
 import { PageHeader, useToast } from '@freeappstore/sdk/ui';
 import { useState } from 'react';
 import { exportJson } from '../services/storage';
+import type { AssessStore } from '../hooks/useAssessStore';
 import type { Store } from '../hooks/useStore';
 import type { KeypadSetting } from '../types';
+import { AssessSettingsPanel } from './assess/AssessSettingsPanel';
 
 const KEYPAD_OPTIONS: { value: KeypadSetting; label: string }[] = [
   { value: 'auto', label: 'Auto' },
@@ -10,7 +12,7 @@ const KEYPAD_OPTIONS: { value: KeypadSetting; label: string }[] = [
   { value: 'off', label: 'Never' },
 ];
 
-export function SettingsView({ store }: { store: Store }) {
+export function SettingsView({ store, assess }: { store: Store; assess: AssessStore }) {
   const { settings, sessions, updateSettings, clearData } = store;
   const [confirming, setConfirming] = useState(false);
   const toast = useToast();
@@ -58,6 +60,8 @@ export function SettingsView({ store }: { store: Store }) {
           </div>
         </div>
       </section>
+
+      <AssessSettingsPanel store={assess} />
 
       <h2 className="mt-8 text-base font-semibold">Your data</h2>
       <p className="mt-1 text-sm text-muted">

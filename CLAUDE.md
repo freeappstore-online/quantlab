@@ -13,6 +13,7 @@ Platform conventions (Shell, brand, mobile, PWA, SDK): read https://raw.githubus
 ## Repo-specific notes
 
 - Screens: `web/src/components/`. Routes are pathname-based (`web/src/hooks/useRoute.ts`): `/`, `/play/:mode`, `/history[/:mode]`, `/settings`, `/about`.
+- Assessment Trainer: routes `/assess`, `/assess/play/:game`, `/assess/full`, `/assess/history[/:game]`. UI in `web/src/components/assess/` (`registry.tsx` lists games, `GameFrame.tsx` runs timer/HUD), logic in `web/src/services/assess/` (seeded generators, banks, tests in `assess.test.ts`). Data keys `quantlab:v1:assess-results` and `quantlab:v1:assess-settings`. `?seed=N` gives reproducible puzzles. Use original names only.
 - Question generators: `web/src/services/generators/`. Invariants are tested in `web/src/services/generators.test.ts`. Run `pnpm test` after touching a generator.
 - Stored data (localStorage): `quantlab:v1:sessions` and `quantlab:v1:settings`, typed and validated in `web/src/services/storage.ts`. Bump the version in the key if the shape changes.
 - The drill screen (`components/Drill.tsx`) must fit without scrolling from 320x568 portrait to 568x320 landscape. The `compact` and `short` Tailwind variants in `index.css` handle this.

@@ -1,19 +1,26 @@
 import { initApp } from '@freeappstore/sdk'
 import { BuildInfo, type NavItem, Shell } from '@freeappstore/sdk/ui'
 import { About } from './components/About'
+import { AssessHistory } from './components/assess/AssessHistory'
+import { AssessHub } from './components/assess/AssessHub'
+import { AssessPlay } from './components/assess/AssessPlay'
+import { FullAssessment } from './components/assess/FullAssessment'
+import { gameById } from './components/assess/registry'
 import { Drill } from './components/Drill'
 import { History } from './components/History'
 import { Home } from './components/Home'
 import { SettingsView } from './components/SettingsView'
+import { useAssessStore } from './hooks/useAssessStore'
 import { go, useRoute } from './hooks/useRoute'
 import { useStore } from './hooks/useStore'
 import { MODES } from './services/modes'
 
 const fas = initApp({ appId: 'quantlab' })
 
-// One entry per screen. Drills (/play/:mode) are reached from Train and have no entry of their own.
+// One entry per screen. Drills (/play/:mode) and assessment games (/assess/play/:game) are reached from their hubs.
 const NAV: NavItem[] = [
   { label: 'Train', href: '/', title: 'QuantLab: free quant interview prep' },
+  { label: 'Assess', href: '/assess', title: 'Game-Based Assessment Trainer — QuantLab' },
   { label: 'History', href: '/history', title: 'History — QuantLab' },
   { label: 'Settings', href: '/settings', title: 'Settings — QuantLab' },
   { label: 'About', href: '/about', title: 'About — QuantLab' },
@@ -22,6 +29,7 @@ const NAV: NavItem[] = [
 export default function App() {
   const route = useRoute()
   const store = useStore()
+  const assess = useAssessStore()
   const { sessions, settings, updateSettings, addSession } = store
 
   let page
@@ -43,8 +51,20 @@ export default function App() {
     case 'history':
       page = <History sessions={sessions} mode={route.mode} />
       break
+    case 'assess':
+      page = <AssessHub store={assess} />
+      break
+    case 'assessPlay':
+      page = <AssessPlay key={route.game} def={gameById(route.game)} store={assess} />
+      break
+    case 'assessFull':
+      page = <FullAssessment store={assess} />
+      break
+    case 'assessHistory':
+      page = <AssessHistory store={assess} game={route.game} />
+      break
     case 'settings':
-      page = <SettingsView store={store} />
+      page = <SettingsView store={store} assess={assess} />
       break
     case 'about':
       page = <About />
@@ -52,6 +72,8 @@ export default function App() {
     default:
       page = <Home sessions={sessions} />
   }
+
+  const focused = route.name === 'play' || route.name === 'assessPlay' || route.name === 'assessFull'
 
   return (
     <Shell app={fas} appName="QuantLab" nav={NAV} onNavigate={go}>
@@ -61,7 +83,7 @@ export default function App() {
         </div>
       )}
       {page}
-      {route.name !== 'play' && <BuildInfo />}
+      {!focused && <BuildInfo />}
     </Shell>
   )
 }
